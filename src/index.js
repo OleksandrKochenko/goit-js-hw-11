@@ -1,6 +1,7 @@
 import Notiflix from "notiflix";
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
+import axios from "axios";
 
 const input = document.querySelector('[type="text"]');
 const submitBtn = document.querySelector('[type = "submit"]');
@@ -19,7 +20,7 @@ const searchParams = new URLSearchParams({
     per_page: 40,
 });
 
-submitBtn.addEventListener('click', (evt) => {
+submitBtn.addEventListener('click', async (evt) => {
     evt.preventDefault();
     gallery.innerHTML = '';
     page = 1;
@@ -30,29 +31,24 @@ submitBtn.addEventListener('click', (evt) => {
         Notiflix.Notify.warning('Please fill in search field');
         return;
     } else {
-        fetchPhotos()
-            .then((photos) => {
-                renderGallery(photos);
-                totalHits = photos.totalHits;
-                if (totalHits > 0) {
-                    Notiflix.Notify.success(`Hooray! We've found ${totalHits} images.`);
-                };
-            })
-            .catch(() => Notiflix.Notify.failure('Sorry, something went wrong. Try search again.'));
+        try {
+            const response = await fetchPhotos();
+            console.log(response);//
+            renderGallery(response.data);
+            totalHits = response.data.totalHits;
+            if (totalHits > 0) {
+                Notiflix.Notify.success(`Hooray! We've found ${totalHits} images.`);
+            };
+        } catch {
+            Notiflix.Notify.failure('Sorry, something went wrong. Try search again.');
+        }
     };
 });
 
 function fetchPhotos() {
     const url = `https://pixabay.com/api/?${searchParams}&q=${input.value.trim()}&page=${page}`;
     page += 1;
-    return fetch(url).then(
-        (responce) => {
-            if (!responce.ok) {
-                throw new Error();
-            };
-            return responce.json();
-        }
-    );
+    return axios.get(url)
 };
 
 function renderGallery(photos) {
@@ -101,24 +97,23 @@ function renderGallery(photos) {
     };
 };
 
-gallery.addEventListener('click', handleClick);
-
-function handleClick(event) {
+gallery.addEventListener('click', (event) => {
     event.preventDefault();
     const element = event.target;
     lightbox.open(element);
-};
+});
 
-loadMore.addEventListener('click', () => {
+loadMore.addEventListener('click', async () => {
     if (input.value.trim() === '') {
         gallery.innerHTML = '';
         Notiflix.Notify.warning('Please fill in search field');
         return;
     };
-    fetchPhotos()
-        .then((photos) => {
-            renderGallery(photos);
-        })
-        .catch(() => Notiflix.Notify.failure(
-            'Sorry, something went wrong. Try search again.'));
+    try {
+        const response = await fetchPhotos();
+        console.log(response);//
+        renderGallery(response.data);
+    } catch {
+        Notiflix.Notify.failure('Sorry, something went wrong. Try search again.');
+    };
 });
